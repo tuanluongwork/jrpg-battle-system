@@ -95,14 +95,3 @@ npm run build:web
 
 ### Mobile Build
 Configure platform settings in Cocos Creator and build for iOS/Android
-
-## 🤝 Contributing
-Feel free to fork and submit pull requests!
-
-## 📝 License
-MIT License
-
-## 👤 Author
-Tuan Luong - Senior Software Engineer
-- GitHub: [@tuanluongwork](https://github.com/tuanluongwork)
-- LinkedIn: [Tuan Luong](https://linkedin.com/in/tuanluong) 
