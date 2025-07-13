@@ -1,0 +1,8 @@
+{
+  "engine": "cocos-creator",
+  "packages": "packages",
+  "name": "JRPG Battle System",
+  "id": "jrpg-battle-system",
+  "version": "1.0.0",
+  "isNew": false
+} 

@@ -1,0 +1,139 @@
+// Fire Effect Shader for JRPG Battle System
+// Demonstrates shader programming skills for Cocos Creator
+
+CCEffect %{
+  techniques:
+  - name: fire
+    passes:
+    - vert: fire-vs:vert
+      frag: fire-fs:frag
+      depthStencilState:
+        depthTest: false
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendDstAlpha: one_minus_src_alpha
+      properties: &props
+        time: { value: 0.0 }
+        fireColor1: { value: [1.0, 0.5, 0.0, 1.0], editor: { type: color } }
+        fireColor2: { value: [1.0, 0.2, 0.0, 1.0], editor: { type: color } }
+        noiseScale: { value: 2.0, editor: { slide: true, range: [0.1, 10.0], step: 0.1 } }
+        fireSpeed: { value: 1.5, editor: { slide: true, range: [0.1, 5.0], step: 0.1 } }
+        distortion: { value: 0.3, editor: { slide: true, range: [0.0, 1.0], step: 0.01 } }
+}%
+
+CCProgram fire-vs %{
+  precision highp float;
+  #include <cc-global>
+  #include <cc-local-batch>
+  
+  in vec3 a_position;
+  in vec2 a_texCoord;
+  in vec4 a_color;
+  
+  out vec2 v_uv;
+  out vec4 v_color;
+  
+  vec4 vert () {
+    vec4 position;
+    CCVertInput(position);
+    
+    mat4 matWorld;
+    CCGetWorldMatrix(matWorld);
+    
+    v_uv = a_texCoord;
+    v_color = a_color;
+    
+    return cc_matProj * cc_matView * matWorld * position;
+  }
+}%
+
+CCProgram fire-fs %{
+  precision highp float;
+  #include <cc-global>
+  
+  in vec2 v_uv;
+  in vec4 v_color;
+  
+  uniform FireUniforms {
+    float time;
+    vec4 fireColor1;
+    vec4 fireColor2;
+    float noiseScale;
+    float fireSpeed;
+    float distortion;
+  };
+  
+  // Simple noise function
+  float noise(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
+  
+  // Smooth noise
+  float smoothNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    
+    float a = noise(i);
+    float b = noise(i + vec2(1.0, 0.0));
+    float c = noise(i + vec2(0.0, 1.0));
+    float d = noise(i + vec2(1.0, 1.0));
+    
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    
+    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+  }
+  
+  // Fractal Brownian Motion
+  float fbm(vec2 p) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    
+    for (int i = 0; i < 4; i++) {
+      value += amplitude * smoothNoise(p);
+      p *= 2.0;
+      amplitude *= 0.5;
+    }
+    
+    return value;
+  }
+  
+  vec4 frag () {
+    vec2 uv = v_uv;
+    
+    // Add time-based animation
+    float animTime = time * fireSpeed;
+    
+    // Create fire distortion
+    vec2 distortedUV = uv;
+    distortedUV.x += sin(uv.y * 10.0 + animTime) * distortion * 0.1;
+    
+    // Generate fire pattern
+    float fireNoise = fbm(distortedUV * noiseScale + vec2(0.0, -animTime));
+    
+    // Shape the fire (stronger at bottom, fades at top)
+    float fireShape = 1.0 - smoothstep(0.0, 1.0, uv.y);
+    fireShape *= fireShape;
+    
+    // Combine noise and shape
+    float fire = fireNoise * fireShape;
+    fire = smoothstep(0.2, 0.8, fire);
+    
+    // Add flickering
+    fire *= (1.0 + sin(animTime * 20.0) * 0.1);
+    
+    // Color gradient
+    vec4 color = mix(fireColor2, fireColor1, fire);
+    
+    // Alpha based on fire intensity
+    color.a = fire * v_color.a;
+    
+    // Add glow effect
+    color.rgb *= 1.0 + fire * 0.5;
+    
+    return color;
+  }
+}% 
