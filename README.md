@@ -5,6 +5,11 @@ A turn-based JRPG battle system built with Cocos Creator 3.x and TypeScript, dem
 ## 🎮 Live Demo
 [Play the demo](https://tuanluongwork.github.io/jrpg-battle-system/) - **Playable web demo available!**
 
+To enable the demo on GitHub Pages:
+1. Go to Settings → Pages in your repository
+2. Set Source: Deploy from a branch, Branch: master, Folder: /docs
+3. Save and wait 2-3 minutes for deployment
+
 ## 🚀 Features
 
 ### Core Gameplay
