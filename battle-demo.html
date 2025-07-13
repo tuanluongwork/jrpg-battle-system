@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JRPG Battle System - Playable Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .game-container {
+            width: 900px;
+            max-width: 95vw;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .battle-screen {
+            background: linear-gradient(to bottom, #2d3561, #0f0f0f);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .battle-screen::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            animation: grid-move 20s linear infinite;
+        }
+        
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(20px, 20px); }
+        }
+        
+        .characters-area {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .party {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .character {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 120px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .character.active {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            transform: translateY(-5px);
+        }
+        
+        .character.enemy {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #e53e3e;
+        }
+        
+        .character.targetable {
+            cursor: pointer;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .character-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .character-sprite {
+            width: 60px;
+            height: 60px;
+            background: #4a5568;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .character.enemy .character-sprite {
+            background: #e53e3e;
+        }
+        
+        .hp-bar {
+            background: #2d3748;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .hp-fill {
+            background: #48bb78;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .mp-bar {
+            background: #2d3748;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .mp-fill {
+            background: #4299e1;
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        
+        .stats {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .battle-menu {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4a5568;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .menu-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+        
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: linear-gradient(to bottom, #4a5568, #2d3748);
+            border: 2px solid #718096;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        .action-btn:hover {
+            background: linear-gradient(to bottom, #5a6578, #3d4758);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .action-btn:active {
+            transform: translateY(0);
+        }
+        
+        .skill-list {
+            display: none;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .skill-btn {
+            background: linear-gradient(to bottom, #553c9a, #6b46c1);
+            border: 2px solid #805ad5;
+            font-size: 14px;
+        }
+        
+        .skill-btn:hover {
+            background: linear-gradient(to bottom, #6b46c1, #805ad5);
+        }
+        
+        .battle-log {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-left: 3px solid #4a5568;
+            padding-left: 10px;
+        }
+        
+        .log-entry.damage {
+            border-color: #e53e3e;
+            color: #fc8181;
+        }
+        
+        .log-entry.heal {
+            border-color: #48bb78;
+            color: #9ae6b4;
+        }
+        
+        .log-entry.info {
+            border-color: #4299e1;
+            color: #90cdf4;
+        }
+        
+        .damage-number {
+            position: absolute;
+            font-weight: bold;
+            font-size: 24px;
+            color: #fc8181;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            animation: damage-float 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        @keyframes damage-float {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+        }
+        
+        .victory-screen, .defeat-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            border-radius: 10px;
+        }
+        
+        .victory-screen h2 {
+            font-size: 48px;
+            color: #ffd700;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+        
+        .defeat-screen h2 {
+            font-size: 48px;
+            color: #e53e3e;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(229, 62, 62, 0.5);
+        }
+        
+        .restart-btn {
+            background: #4a5568;
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .restart-btn:hover {
+            background: #5a6578;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 style="text-align: center; margin-bottom: 20px;">⚔️ JRPG Battle System Demo</h1>
+        
+        <div class="battle-screen">
+            <div class="characters-area">
+                <div class="party" id="player-party">
+                    <!-- Player characters will be added here -->
+                </div>
+                
+                <div class="party" id="enemy-party">
+                    <!-- Enemy characters will be added here -->
+                </div>
+            </div>
+            
+            <div class="victory-screen" id="victory-screen">
+                <h2>VICTORY!</h2>
+                <p>You gained 100 EXP and 50 Gold!</p>
+                <button class="restart-btn" onclick="location.reload()">Play Again</button>
+            </div>
+            
+            <div class="defeat-screen" id="defeat-screen">
+                <h2>DEFEAT...</h2>
+                <p>Try again!</p>
+                <button class="restart-btn" onclick="location.reload()">Retry</button>
+            </div>
+        </div>
+        
+        <div class="battle-menu" id="battle-menu">
+            <div class="menu-title" id="menu-title">Select Action</div>
+            
+            <div class="action-buttons" id="action-buttons">
+                <button class="action-btn" onclick="selectAction('attack')">⚔️ Attack</button>
+                <button class="action-btn" onclick="selectAction('skill')">✨ Skills</button>
+                <button class="action-btn" onclick="selectAction('defend')">🛡️ Defend</button>
+                <button class="action-btn" onclick="selectAction('item')">🧪 Items</button>
+            </div>
+            
+            <div class="skill-list" id="skill-list">
+                <button class="action-btn skill-btn" onclick="useSkill('fireball')">🔥 Fireball (8 MP)</button>
+                <button class="action-btn skill-btn" onclick="useSkill('heal')">💚 Heal (6 MP)</button>
+                <button class="action-btn skill-btn" onclick="useSkill('powerBoost')">💪 Power Boost (5 MP)</button>
+                <button class="action-btn skill-btn" onclick="selectAction('back')">🔙 Back</button>
+            </div>
+        </div>
+        
+        <div class="battle-log" id="battle-log">
+            <div class="log-entry info">Battle Start!</div>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            currentTurn: 0,
+            turnOrder: [],
+            selectedAction: null,
+            selectedSkill: null,
+            waitingForTarget: false,
+            battleEnded: false
+        };
+
+        // Character data
+        const characters = {
+            hero: {
+                id: 'hero',
+                name: 'Hero',
+                sprite: '🗡️',
+                hp: 100,
+                maxHp: 100,
+                mp: 50,
+                maxMp: 50,
+                attack: 15,
+                defense: 10,
+                speed: 12,
+                isPlayer: true
+            },
+            mage: {
+                id: 'mage',
+                name: 'Mage',
+                sprite: '🧙',
+                hp: 80,
+                maxHp: 80,
+                mp: 80,
+                maxMp: 80,
+                attack: 10,
+                defense: 8,
+                speed: 10,
+                isPlayer: true
+            },
+            enemy1: {
+                id: 'enemy1',
+                name: 'Goblin',
+                sprite: '👺',
+                hp: 60,
+                maxHp: 60,
+                mp: 20,
+                maxMp: 20,
+                attack: 12,
+                defense: 6,
+                speed: 14,
+                isPlayer: false
+            },
+            enemy2: {
+                id: 'enemy2',
+                name: 'Orc',
+                sprite: '👹',
+                hp: 80,
+                maxHp: 80,
+                mp: 30,
+                maxMp: 30,
+                attack: 18,
+                defense: 12,
+                speed: 8,
+                isPlayer: false
+            }
+        };
+
+        // Initialize battle
+        function initBattle() {
+            // Create character elements
+            createCharacterElement(characters.hero, 'player-party');
+            createCharacterElement(characters.mage, 'player-party');
+            createCharacterElement(characters.enemy1, 'enemy-party');
+            createCharacterElement(characters.enemy2, 'enemy-party');
+            
+            // Set up turn order based on speed
+            gameState.turnOrder = Object.values(characters).sort((a, b) => b.speed - a.speed);
+            
+            // Start first turn
+            setTimeout(() => startTurn(), 1000);
+        }
+
+        // Create character UI element
+        function createCharacterElement(character, partyId) {
+            const charDiv = document.createElement('div');
+            charDiv.className = 'character' + (character.isPlayer ? '' : ' enemy');
+            charDiv.id = character.id;
+            charDiv.innerHTML = `
+                <div class="character-name">${character.name}</div>
+                <div class="character-sprite">${character.sprite}</div>
+                <div class="hp-bar">
+                    <div class="hp-fill" style="width: ${(character.hp / character.maxHp) * 100}%"></div>
+                </div>
+                <div class="mp-bar">
+                    <div class="mp-fill" style="width: ${(character.mp / character.maxMp) * 100}%"></div>
+                </div>
+                <div class="stats">
+                    HP: <span class="hp-text">${character.hp}/${character.maxHp}</span><br>
+                    MP: <span class="mp-text">${character.mp}/${character.maxMp}</span>
+                </div>
+            `;
+            
+            charDiv.onclick = () => selectTarget(character.id);
+            document.getElementById(partyId).appendChild(charDiv);
+        }
+
+        // Start turn
+        function startTurn() {
+            if (gameState.battleEnded) return;
+            
+            const currentChar = gameState.turnOrder[gameState.currentTurn];
+            
+            // Skip if character is dead
+            if (currentChar.hp <= 0) {
+                nextTurn();
+                return;
+            }
+            
+            // Highlight active character
+            document.querySelectorAll('.character').forEach(el => el.classList.remove('active'));
+            document.getElementById(currentChar.id).classList.add('active');
+            
+            addLog(`${currentChar.name}'s turn!`, 'info');
+            
+            if (currentChar.isPlayer) {
+                // Player turn
+                document.getElementById('menu-title').textContent = `${currentChar.name}'s Turn`;
+                showActionMenu();
+            } else {
+                // Enemy AI turn
+                setTimeout(() => enemyTurn(currentChar), 1000);
+            }
+        }
+
+        // Enemy AI
+        function enemyTurn(enemy) {
+            const playerChars = gameState.turnOrder.filter(c => c.isPlayer && c.hp > 0);
+            if (playerChars.length === 0) return;
+            
+            // Simple AI: attack random player
+            const target = playerChars[Math.floor(Math.random() * playerChars.length)];
+            performAttack(enemy, target);
+            
+            setTimeout(() => nextTurn(), 1500);
+        }
+
+        // Perform attack
+        function performAttack(attacker, defender) {
+            const damage = Math.max(1, Math.floor(attacker.attack * (1 + Math.random() * 0.3) - defender.defense * 0.5));
+            defender.hp = Math.max(0, defender.hp - damage);
+            
+            updateCharacterUI(defender);
+            showDamageNumber(defender.id, damage);
+            addLog(`${attacker.name} attacks ${defender.name} for ${damage} damage!`, 'damage');
+            
+            checkBattleEnd();
+        }
+
+        // Show floating damage number
+        function showDamageNumber(targetId, damage) {
+            const targetEl = document.getElementById(targetId);
+            const damageEl = document.createElement('div');
+            damageEl.className = 'damage-number';
+            damageEl.textContent = `-${damage}`;
+            damageEl.style.left = '50%';
+            damageEl.style.top = '30%';
+            targetEl.appendChild(damageEl);
+            
+            setTimeout(() => damageEl.remove(), 1000);
+        }
+
+        // Update character UI
+        function updateCharacterUI(character) {
+            const charEl = document.getElementById(character.id);
+            charEl.querySelector('.hp-fill').style.width = `${(character.hp / character.maxHp) * 100}%`;
+            charEl.querySelector('.mp-fill').style.width = `${(character.mp / character.maxMp) * 100}%`;
+            charEl.querySelector('.hp-text').textContent = `${character.hp}/${character.maxHp}`;
+            charEl.querySelector('.mp-text').textContent = `${character.mp}/${character.maxMp}`;
+            
+            if (character.hp <= 0) {
+                charEl.style.opacity = '0.5';
+                charEl.classList.remove('targetable');
+            }
+        }
+
+        // Action selection
+        function selectAction(action) {
+            const currentChar = gameState.turnOrder[gameState.currentTurn];
+            
+            switch(action) {
+                case 'attack':
+                    gameState.selectedAction = 'attack';
+                    showTargets(false);
+                    break;
+                case 'skill':
+                    showSkillMenu();
+                    break;
+                case 'defend':
+                    addLog(`${currentChar.name} defends!`, 'info');
+                    nextTurn();
+                    break;
+                case 'item':
+                    addLog('No items available!', 'info');
+                    break;
+                case 'back':
+                    showActionMenu();
+                    break;
+            }
+        }
+
+        // Use skill
+        function useSkill(skillId) {
+            const currentChar = gameState.turnOrder[gameState.currentTurn];
+            
+            switch(skillId) {
+                case 'fireball':
+                    if (currentChar.mp >= 8) {
+                        gameState.selectedSkill = 'fireball';
+                        showTargets(false);
+                    } else {
+                        addLog('Not enough MP!', 'info');
+                    }
+                    break;
+                case 'heal':
+                    if (currentChar.mp >= 6) {
+                        gameState.selectedSkill = 'heal';
+                        showTargets(true);
+                    } else {
+                        addLog('Not enough MP!', 'info');
+                    }
+                    break;
+                case 'powerBoost':
+                    if (currentChar.mp >= 5) {
+                        currentChar.mp -= 5;
+                        currentChar.attack += 5;
+                        updateCharacterUI(currentChar);
+                        addLog(`${currentChar.name}'s attack increased!`, 'info');
+                        nextTurn();
+                    } else {
+                        addLog('Not enough MP!', 'info');
+                    }
+                    break;
+            }
+        }
+
+        // Show targetable characters
+        function showTargets(targetAllies) {
+            hideMenus();
+            gameState.waitingForTarget = true;
+            
+            document.querySelectorAll('.character').forEach(el => {
+                const char = characters[el.id];
+                if (char.hp > 0 && char.isPlayer === targetAllies) {
+                    el.classList.add('targetable');
+                }
+            });
+            
+            document.getElementById('menu-title').textContent = 'Select Target';
+        }
+
+        // Select target
+        function selectTarget(targetId) {
+            if (!gameState.waitingForTarget) return;
+            
+            const currentChar = gameState.turnOrder[gameState.currentTurn];
+            const target = characters[targetId];
+            
+            if (!target || target.hp <= 0) return;
+            
+            document.querySelectorAll('.character').forEach(el => el.classList.remove('targetable'));
+            gameState.waitingForTarget = false;
+            
+            if (gameState.selectedAction === 'attack') {
+                performAttack(currentChar, target);
+                setTimeout(() => nextTurn(), 1500);
+            } else if (gameState.selectedSkill === 'fireball') {
+                // Fireball skill
+                currentChar.mp -= 8;
+                const damage = Math.floor(currentChar.attack * 1.5);
+                target.hp = Math.max(0, target.hp - damage);
+                updateCharacterUI(currentChar);
+                updateCharacterUI(target);
+                showDamageNumber(target.id, damage);
+                addLog(`${currentChar.name} casts Fireball on ${target.name} for ${damage} damage!`, 'damage');
+                setTimeout(() => nextTurn(), 1500);
+            } else if (gameState.selectedSkill === 'heal') {
+                // Heal skill
+                currentChar.mp -= 6;
+                const healAmount = 30;
+                target.hp = Math.min(target.maxHp, target.hp + healAmount);
+                updateCharacterUI(currentChar);
+                updateCharacterUI(target);
+                addLog(`${currentChar.name} heals ${target.name} for ${healAmount} HP!`, 'heal');
+                setTimeout(() => nextTurn(), 1500);
+            }
+            
+            gameState.selectedAction = null;
+            gameState.selectedSkill = null;
+        }
+
+        // Next turn
+        function nextTurn() {
+            gameState.currentTurn = (gameState.currentTurn + 1) % gameState.turnOrder.length;
+            startTurn();
+        }
+
+        // Check if battle ended
+        function checkBattleEnd() {
+            const playersAlive = gameState.turnOrder.filter(c => c.isPlayer && c.hp > 0).length;
+            const enemiesAlive = gameState.turnOrder.filter(c => !c.isPlayer && c.hp > 0).length;
+            
+            if (playersAlive === 0) {
+                gameState.battleEnded = true;
+                document.getElementById('defeat-screen').style.display = 'flex';
+            } else if (enemiesAlive === 0) {
+                gameState.battleEnded = true;
+                document.getElementById('victory-screen').style.display = 'flex';
+            }
+        }
+
+        // UI helpers
+        function showActionMenu() {
+            document.getElementById('action-buttons').style.display = 'grid';
+            document.getElementById('skill-list').style.display = 'none';
+        }
+
+        function showSkillMenu() {
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('skill-list').style.display = 'grid';
+        }
+
+        function hideMenus() {
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('skill-list').style.display = 'none';
+        }
+
+        function addLog(message, type = 'info') {
+            const logEl = document.getElementById('battle-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = message;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // Start the game
+        initBattle();
+    </script>
+</body>
+</html> 
