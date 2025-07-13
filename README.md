@@ -7,7 +7,7 @@ A turn-based JRPG battle system built with Cocos Creator 3.x and TypeScript, dem
 
 To enable the demo on GitHub Pages:
 1. Go to Settings → Pages in your repository
-2. Set Source: Deploy from a branch, Branch: master, Folder: /docs
+2. Set Source: Deploy from a branch, Branch: main, Folder: /docs
 3. Save and wait 2-3 minutes for deployment
 
 ## 🚀 Features
